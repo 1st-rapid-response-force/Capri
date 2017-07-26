@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import sys
@@ -7,12 +8,38 @@ import subprocess
 from pathlib import Path
 import urllib.request
 from urllib.request import urlretrieve
+from datetime import timedelta, datetime, tzinfo
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-e", "--exe",dest ="armaexecutable", help="ARMA Executable")
+parser.add_argument("-n", "--name",dest ="name", help="Server Name")
+parser.add_argument("-p", "--port",dest ="port", help="Server Port")
+parser.add_argument("-c", "--config",dest ="config", help="Server Config")
 
 RRFMISSIONS = "http://1st-rrf.com/api/missions"
+RRFDEPLOYMENT = "https://1st-rrf.com/api/mission-deployment"
 MISSIONDIR = r"C:\Users\Guillermo\Development\Python\Capri\MPMissions"
+MODS = "-mod=mods/cba;mods/rhsafrf;mods/rhsusaf;mods/modpack;"
 
 def getmissionlist():
     siterequest = requests.get(RRFMISSIONS)
+    return siterequest.json()
+
+def getdeploymentstatus():
+    siterequest = requests.get(RRFDEPLOYMENT)
+    response = siterequest.json()
+    return response['deploy']
+
+def postdeploymentstatus(deploymentkey):
+    
+    siterequest = requests.post(RRFDEPLOYMENT, data = {'RRF_DEPLOYMENT_KEY':deploymentkey})
+    response = siterequest.json()
+    if response["status"] == 1:
+        print("Updated Deployment Status Successfully")
+    else:
+        print (response["message"])
+    
     return siterequest.json()
 
 def verifychecksum(file, checksum):
@@ -41,12 +68,18 @@ def downloadmissionfile(mission):
     localfile.write(downloadedfile)
     localfile.close()
 
-def main(argv):
-    # Grab Mission List
-    missionlist = getmissionlist()
+def launchserver(serverexecutable, name, port, config):
+    #================= Launch Server
+    # At this step all missions should have been updated successfully.
+    print('Launching Server {}').format(name)
+    process = subprocess.Popen([serverexecutable, MODS, '-checkSignatures','-config='+config,'-port='+port,'-name='+name, '-serverMod=mods/rrfserver;', '-filePatching'])
+    return process
 
+def updatemissionfiles():
+    # =============== Download Mission Files
     # Connect to API and get list of all missions and determine
     # if we need to download or skip them as they are already up to date.
+    missionlist = getmissionlist()
     for mission in missionlist:
         if checkmissionfile(mission):
             # Mission is up-to-date
@@ -56,15 +89,48 @@ def main(argv):
             downloadmissionfile(mission)
             print('{} - Checksum Failed - File Downloaded'.format(mission['name']))
 
-    # At this step all missions should have been updated successfully.
-    mods = "-mod=mods/cba;mods/rhsafrf;mods/rhsusaf;mods/modpack;"
-    serverExecutable = r'D:\Steam\steamapps\common\Arma 3 Server\arma3server.exe'
-    print('Launching Server')
-    aor1Process = subprocess.Popen([serverExecutable, mods, '-checkSignatures','-config=aor1.cfg','-port=2302','-name=aorone', '-serverMod=mods/rrfserver;', '-filePatching'])
-    print('{} - pid'.format(aor1Process.pid))
-    time.sleep(240)
-    aor1Process.terminate()
-    print('Server Terminated')
+def main(argv):
+    # Grab Mission List and Status
+    status = getdeploymentstatus()
+    serverexecutable = r'D:\Steam\steamapps\common\Arma 3 Server\arma3server.exe'
+    args = parser.parse_args()
+    print(args.armaexecutable)
+    
+    format = "%a %b %d %H:%M:%S %Y"
+
+    # Import Deployment Key
+    with open('.env.json', 'r') as f:
+        deploymentkey = json.load(f)
+        deploymentkey = deploymentkey["RRF_DEPLOYMENT_KEY"]
+
+    # Get Initial Time
+    start = datetime.now()
+    start = start.replace(minute=0,second=0)
+
+    # Get expiration time
+    expiration = start.replace(hour=start.hour+1)
+    
+
+    # Begin Program Loop
+    while 1:
+        #Time Check
+        if start > expiration:
+            if status:
+                # Kill Servers
+                # TODO Update mission files
+                updatemissionfiles()
+                postdeploymentstatus(deploymentkey)
+                # TODO Start Server
+            # Increase the expiration date by 1 hour
+            expiration = expiration.replace(hour=expiration.hour+1)
+        # Sleep for 1 minute
+        time.sleep(60)
+        
+        # Update time and status
+        start = start.now()
+        #TODO HEARTBEAT
+        status = getdeploymentstatus()
+
 
 if __name__ == "__main__":
     main(sys.argv)
