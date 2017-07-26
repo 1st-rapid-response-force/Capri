@@ -138,7 +138,6 @@ def main(argv):
         # Update time and status
         start = start.now()
         #TODO HEARTBEAT
-        print('Capri - Heartbeat: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
         status = getdeploymentstatus()
 
 
