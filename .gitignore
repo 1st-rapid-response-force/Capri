@@ -29,7 +29,7 @@ obj/
 [Rr]elease*/
 Ankh.NoLoad
 
-env
+.env.json
 
 #Tooling
 _ReSharper*/
