@@ -16,11 +16,12 @@ parser.add_argument("-e", "--exe",dest ="armaexecutable", help="ARMA Executable"
 parser.add_argument("-n", "--name",dest ="name", help="Server Name")
 parser.add_argument("-p", "--port",dest ="port", help="Server Port")
 parser.add_argument("-c", "--config",dest ="config", help="Server Config")
+parser.add_argument("-d", "--download",dest ="downloadmissions", help="Mission Updates")
 
 RRFMISSIONS = "http://1st-rrf.com/api/missions"
 RRFDEPLOYMENT = "https://1st-rrf.com/api/mission-deployment"
-MISSIONDIR = r"C:\Users\Guillermo\Development\Python\Capri\MPMissions"
-MODS = "-mod=mods/cba;mods/rhsafrf;mods/rhsusaf;mods/modpack;"
+MISSIONDIR = r"C:\servers\operationsAOR1\mpmissions"
+MODS = "-mod=mods/cba;mods/afrf;mods/usaf;mods/modpack;"
 
 def getmissionlist():
     siterequest = requests.get(RRFMISSIONS)
@@ -32,14 +33,14 @@ def getdeploymentstatus():
     return response['deploy']
 
 def postdeploymentstatus(deploymentkey):
-    
+
     siterequest = requests.post(RRFDEPLOYMENT, data = {'RRF_DEPLOYMENT_KEY':deploymentkey})
     response = siterequest.json()
     if response["status"] == 1:
         print("Updated Deployment Status Successfully")
     else:
         print (response["message"])
-    
+
     return siterequest.json()
 
 def verifychecksum(file, checksum):
@@ -95,19 +96,24 @@ def main(argv):
     status = getdeploymentstatus()
     args = parser.parse_args()
 
-
     # Import Deployment Key
     with open('.env.json', 'r') as f:
         deploymentkey = json.load(f)
         deploymentkey = deploymentkey["RRF_DEPLOYMENT_KEY"]
 
+    if args.downloadmissions is not None:
+        print('Capri - Mission Files are updated by this Capri instance')
+    else:
+        print('Capri - Mission Files are not updated by this Capri instance')
     # Get Initial Time
     start = datetime.now()
     start = start.replace(minute=0,second=0)
 
     # Get expiration time
     expiration = start.replace(hour=start.hour+1)
-    
+
+    print('Capri - Heartbeat - '+str(datetime.now())+' - Expiration: '+str(expiration))
+
     # Starting Game Server  name, port, config
     gameprocess = launchserver(args.armaexecutable, args.name, args.port, args.config)
     # Begin Program Loop
@@ -122,9 +128,12 @@ def main(argv):
 
                 # Update mission files
                 print("Capri - Updating Mission Files")
-                updatemissionfiles()
-                postdeploymentstatus(deploymentkey)
-                time.sleep(20)
+                if args.downloadmissions is not None:
+                    updatemissionfiles()
+                else:
+                    print('Capri - Mission Files are not updated by this Capri instance')
+
+                time.sleep(30)
 
                 # Start Server
                 gameprocess = launchserver(args.armaexecutable, args.name, args.port, args.config)
@@ -132,12 +141,13 @@ def main(argv):
 
             # Increase the expiration date by 1 hour
             expiration = expiration.replace(hour=expiration.hour+1)
+            postdeploymentstatus(deploymentkey)
         # Sleep for 1 minute
         time.sleep(60)
-        
+
         # Update time and status
         start = start.now()
-        #TODO HEARTBEAT
+        print('Capri - Heartbeat - '+str(datetime.now())+' - Expiration: '+str(expiration))
         status = getdeploymentstatus()
 
 
