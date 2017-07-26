@@ -71,7 +71,8 @@ def downloadmissionfile(mission):
 def launchserver(serverexecutable, name, port, config):
     #================= Launch Server
     # At this step all missions should have been updated successfully.
-    print('Launching Server {}').format(name)
+    print('Capri - Launching Server')
+    print(name)
     process = subprocess.Popen([serverexecutable, MODS, '-checkSignatures','-config='+config,'-port='+port,'-name='+name, '-serverMod=mods/rrfserver;', '-filePatching'])
     return process
 
@@ -83,20 +84,17 @@ def updatemissionfiles():
     for mission in missionlist:
         if checkmissionfile(mission):
             # Mission is up-to-date
-            print('{} - No issue'.format(mission['name']))
+            print('Capri - {} - No issue'.format(mission['name']))
         else:
             # Download and overwrite previous file
             downloadmissionfile(mission)
-            print('{} - Checksum Failed - File Downloaded'.format(mission['name']))
+            print('Capri - {} - Checksum Failed - File Downloaded'.format(mission['name']))
 
 def main(argv):
     # Grab Mission List and Status
     status = getdeploymentstatus()
-    serverexecutable = r'D:\Steam\steamapps\common\Arma 3 Server\arma3server.exe'
     args = parser.parse_args()
-    print(args.armaexecutable)
-    
-    format = "%a %b %d %H:%M:%S %Y"
+
 
     # Import Deployment Key
     with open('.env.json', 'r') as f:
@@ -110,17 +108,28 @@ def main(argv):
     # Get expiration time
     expiration = start.replace(hour=start.hour+1)
     
-
+    # Starting Game Server  name, port, config
+    gameprocess = launchserver(args.armaexecutable, args.name, args.port, args.config)
     # Begin Program Loop
     while 1:
         #Time Check
         if start > expiration:
             if status:
                 # Kill Servers
-                # TODO Update mission files
+                print("Capri - Killing ARMA Server")
+                gameprocess.terminate()
+                time.sleep(20)
+
+                # Update mission files
+                print("Capri - Updating Mission Files")
                 updatemissionfiles()
                 postdeploymentstatus(deploymentkey)
-                # TODO Start Server
+                time.sleep(20)
+
+                # Start Server
+                gameprocess = launchserver(args.armaexecutable, args.name, args.port, args.config)
+                time.sleep(20)
+
             # Increase the expiration date by 1 hour
             expiration = expiration.replace(hour=expiration.hour+1)
         # Sleep for 1 minute
@@ -129,6 +138,7 @@ def main(argv):
         # Update time and status
         start = start.now()
         #TODO HEARTBEAT
+        print('Capri - Heartbeat: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
         status = getdeploymentstatus()
 
 
