@@ -2,6 +2,7 @@ import requests
 import json
 import sys
 import hashlib
+import time
 import subprocess
 from pathlib import Path
 import urllib.request
@@ -56,11 +57,14 @@ def main(argv):
             print('{} - Checksum Failed - File Downloaded'.format(mission['name']))
 
     # At this step all missions should have been updated successfully.
-    mods = "-mod=mods/cba;mods/afrf;mods/usaf;mods/modpack;"
+    mods = "-mod=mods/cba;mods/rhsafrf;mods/rhsusaf;mods/modpack;"
     serverExecutable = r'D:\Steam\steamapps\common\Arma 3 Server\arma3server.exe'
     print('Launching Server')
     aor1Process = subprocess.Popen([serverExecutable, mods, '-checkSignatures','-config=aor1.cfg','-port=2302','-name=aorone', '-serverMod=mods/rrfserver;', '-filePatching'])
-
+    print('{} - pid'.format(aor1Process.pid))
+    time.sleep(240)
+    aor1Process.terminate()
+    print('Server Terminated')
 
 if __name__ == "__main__":
     main(sys.argv)
