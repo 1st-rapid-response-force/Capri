@@ -117,7 +117,11 @@ class Capri(socketserver.BaseRequestHandler):
         self.request.sendall(self.data.upper())
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 4475
+    # Import Server Config
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+
+    HOST, PORT = config["host"], 4475
 
     # Create the server, binding to localhost on port 4475
     server = socketserver.TCPServer((HOST, PORT), Capri)
@@ -126,10 +130,6 @@ if __name__ == "__main__":
     with open('.env.json', 'r') as f:
         deploymentkey = json.load(f)
         deploymentkey = deploymentkey["RRF_DEPLOYMENT_KEY"]
-
-    # Import Server Config
-    with open('config.json', 'r') as f:
-        config = json.load(f)
 
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C

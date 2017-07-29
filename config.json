@@ -1,21 +1,23 @@
 {
+  "host": "217.182.195.63",
+  "port": 4475,
   "profile_name": "moddedAor",
   "mpmissions": "C:\\servers\\operationsAOR1\\mpmissions",
   "servers": [
     {
       "name": "AOR 1",
       "port": 2302,
-      "exec": "AOR1.bat"
+      "exec": "C:\\servers\\operationsAOR1\\AOR1.bat"
     },
     {
       "name": "AOR 2",
       "port": 2302,
-      "exec": "AOR2.bat"
+      "exec": "C:\\servers\\operationsAOR1\\AOR2.bat"
     },
     {
       "name": "Training",
       "port": 2322,
-      "exec": "AOR3.bat"
+      "exec": "C:\\servers\\operationsAOR1\\AOR3.bat"
     }
   ]
 }
