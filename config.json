@@ -1,5 +1,6 @@
 {
   "profile_name": "moddedAor",
+  "mpmissions": "C:\\servers\\operationsAOR1\\mpmissions",
   "servers": [
     {
       "name": "AOR 1",

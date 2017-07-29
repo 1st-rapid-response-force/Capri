@@ -14,7 +14,6 @@ from pathlib import Path
 
 RRFMISSIONS = "http://1st-rrf.com/api/missions"
 RRFDEPLOYMENT = "https://1st-rrf.com/api/mission-deployment"
-MISSIONDIR = r"C:\Program Files (x86)\Steam\steamapps\common\Arma 3 Server\MPMissions"
 
 class Capri(socketserver.BaseRequestHandler):
     def getmissionlist(self):
@@ -48,7 +47,7 @@ class Capri(socketserver.BaseRequestHandler):
             return 0
 
     def checkmissionfile(self, mission):
-        missionfile = Path(MISSIONDIR+'/'+mission['filename'])
+        missionfile = Path(config['mpmissions']+'/'+mission['filename'])
         if missionfile.is_file() :
             if self.verifychecksum(missionfile, mission['checksum']):
                 return 1
@@ -58,7 +57,7 @@ class Capri(socketserver.BaseRequestHandler):
             return 0
 
     def downloadmissionfile(self, mission):
-        missionfile = Path(MISSIONDIR+'/'+mission['filename'])
+        missionfile = Path(config['mpmissions']+'/'+mission['filename'])
         req = urllib.request.Request(mission['download'], headers={'User-Agent': 'Mozilla/5.0'})
         page = urllib.request.urlopen(req)
         downloadedfile = page.read()
