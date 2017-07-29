@@ -14,6 +14,7 @@ from pathlib import Path
 
 RRFMISSIONS = "http://1st-rrf.com/api/missions"
 RRFDEPLOYMENT = "https://1st-rrf.com/api/mission-deployment"
+RRFHEARTBEAT = "http://1st-rrf.app/api/overlord/heartbeat"
 
 class Capri(socketserver.BaseRequestHandler):
     def getmissionlist(self):
@@ -35,9 +36,44 @@ class Capri(socketserver.BaseRequestHandler):
             print (response["message"])
 
         return siterequest.json()
+    
+    def checkserverstatus(self):
+        arma = "arma3server_x64.exe"
+        statuslist = []
+        
+        for proc in psutil.process_iter():
+            if proc.name() == arma:
+                commandline = proc.cmdline()
+                port = proc.cmdline()
+                port = port[3][6:10]
+                processstatus = proc.status()
+                name = ""
 
-    def postheartbeat(deploymentkey):
-        pass
+                # Assign name based on Port
+                if port == "2302":
+                    name = "aor1"
+                if port == "2312":
+                    name = "aor2"
+                if port == "2322":
+                    name = "training"
+
+                status = {'name': name, 'port':port,'status':processstatus, 'data':{'cpu':proc.cpu_percent(interval=None), 'memory':proc.memory_percent()}}
+                statuslist.insert(0,status)
+        return statuslist
+
+    def postheartbeat(self,deploymentkey, server):
+        for server in config['servers']:
+            statuslist = self.checkserverstatus()
+            for status in statuslist:
+                datajson = json.dumps(status['data'])
+                siterequest = requests.post(RRFHEARTBEAT, data = {'RRF_DEPLOYMENT_KEY':deploymentkey, 'server': status['name'],'port':status['port'],'status':status['status'],'data':datajson})
+                response = siterequest.json()
+                if response["status"] == 1:
+                    print('Capri - Heartbeat - '+str(datetime.now()))
+                else:
+                    print (response["message"])
+
+            return siterequest.json()
 
     def verifychecksum(self, file, checksum):
         computedhash = hashlib.md5(open(file,'rb').read()).hexdigest()
@@ -105,13 +141,19 @@ class Capri(socketserver.BaseRequestHandler):
             self.killservers()
 
         if self.data.decode("utf-8") == "RRF_UPDATEMAPS":
+            self.killservers()
             self.updatemissionfiles()
+            self.startservers()
+            self.postheartbeat()
 
         if self.data.decode("utf-8") == "RRF_SERVERSTATUS":
             self.postheartbeat()
 
         if self.data.decode("utf-8") == "RRF_STARTSERVERS":
             self.startservers()
+        if self.data.decode("utf-8") == "TEST":
+            statuslist = self.postheartbeat(deploymentkey,config['servers'])
+            print(statuslist)
 
         # just send back the same data, but upper-cased
         self.request.sendall(self.data.upper())
@@ -130,6 +172,16 @@ if __name__ == "__main__":
     with open('.env.json', 'r') as f:
         deploymentkey = json.load(f)
         deploymentkey = deploymentkey["RRF_DEPLOYMENT_KEY"]
+
+    arma = "arma3server_x64.exe"
+    for proc in psutil.process_iter():
+        if proc.name() == arma:
+            port = proc.cmdline()
+            print(proc.cpu_percent(interval=None))
+            print(port[3][6:10])
+            print(proc.cpu_percent(interval=None))
+        
+    pass
 
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
