@@ -1,0 +1,20 @@
+{
+  "profile_name": "moddedAor",
+  "servers": [
+    {
+      "name": "AOR 1",
+      "port": 2302,
+      "exec": "AOR1.bat"
+    },
+    {
+      "name": "AOR 2",
+      "port": 2302,
+      "exec": "AOR2.bat"
+    },
+    {
+      "name": "Training",
+      "port": 2322,
+      "exec": "AOR3.bat"
+    }
+  ]
+}
